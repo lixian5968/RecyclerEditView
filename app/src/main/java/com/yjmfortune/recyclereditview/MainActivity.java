@@ -3,6 +3,7 @@ package com.yjmfortune.recyclereditview;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
@@ -16,11 +17,15 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
@@ -28,6 +33,7 @@ import com.bumptech.glide.load.resource.bitmap.GlideBitmapDrawable;
 import com.bumptech.glide.load.resource.drawable.GlideDrawable;
 import com.bumptech.glide.request.animation.GlideAnimation;
 import com.bumptech.glide.request.target.SimpleTarget;
+import com.xinlan.imageeditlibrary.editimage.EditImageActivity;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -52,6 +58,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     LinearLayout system_out;
 
 
+    int width;     // 屏幕宽度（像素）
     Context ct;
     private List<EditOrImageBean> mSelectBeans;
     private EditAdapter mAdapter;
@@ -74,6 +81,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         system_out.setOnClickListener(this);
         look.setOnClickListener(this);
 
+
+        DisplayMetrics metric = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(metric);
+        width = metric.widthPixels;
+        int height = metric.heightPixels;   // 屏幕高度（像素）
+        float density = metric.density;      // 屏幕密度（0.75 / 1.0 / 1.5）
+        int densityDpi = metric.densityDpi;  // 屏幕密度DPI（120 / 160 / 240）
     }
 
     //设置滑动时间戳
@@ -98,13 +112,57 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onDeleteAddClick(View view, int position) {
                 mSelectBeans.remove(position);
-                mAdapter.notifyDataSetChanged();
-
+                mAdapter.notifyItemRemoved(position);
             }
 
             @Override
             public void onUpdateText(View view, int position, String s) {
                 mSelectBeans.get(position).setText(s);
+            }
+
+            @Override
+            public void onSettingClick(View view, ImageView imageView, int position) {
+                EditOrImageBean bean = mSelectBeans.get(position);
+                if ("text".equals(bean.getType())) {
+                    showSettingDialog(view, position);
+                } else if ("image".equals(bean.getType())) {
+                    imageView.setTag(position);
+                    mImageView = imageView;
+
+                    if (bean.getBitmapUrl() != null && bean.getBitmapUrl().length() > 0) {
+
+                        try {
+                            Intent it = new Intent(MainActivity.this, EditImageActivity.class);
+                            Uri mUri=    Uri.parse(bean.getBitmapUrl());
+                            String[] proj = {MediaStore.Images.Media.DATA};
+                            //好像是android多媒体数据库的封装接口，具体的看Android文档
+                            Cursor cursor = managedQuery(mUri, proj, null, null, null);
+                            //按我个人理解 这个是获得用户选择的图片的索引值
+                            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                            //将光标移至开头 ，这个很重要，不小心很容易引起越界
+                            cursor.moveToFirst();
+                            //最后根据索引值获取图片路径
+                            String path = cursor.getString(column_index);
+                            it.putExtra(EditImageActivity.FILE_PATH, mUri);
+
+
+                            String saveDir = Environment.getExternalStorageDirectory() + "/lpj/";
+                            String newName = System.currentTimeMillis() + ".jpg";
+                            File file = new File(saveDir, newName);
+                            if (!file.exists()) {
+                                file.createNewFile();
+                            }
+                            it.putExtra(EditImageActivity.EXTRA_OUTPUT, file.getAbsolutePath());
+                            Log.e("lxEXTRA_OUTPUT", file.getAbsolutePath());
+                            MainActivity.this.startActivityForResult(it, ACTION_REQUEST_EDITIMAGE);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            Toast.makeText(ct, e.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Toast.makeText(ct, "请填入图片", Toast.LENGTH_SHORT).show();
+                    }
+                }
             }
 
         });
@@ -164,6 +222,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         itemTouchHelper.attachToRecyclerView(mRecyclerView);
     }
 
+
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
@@ -188,7 +247,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.look:
 //                UpdateBean();
 
-                Intent it = new Intent(ct,ShowActivity.class);
+                Intent it = new Intent(ct, ShowActivity.class);
 //                Bundle bd = new Bundle();
 //                bd.putSerializable("mSelectBeans", (Serializable) mSelectBeans);
 //                it.putExtras(bd);
@@ -201,26 +260,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-//    private void UpdateBean() {
-//        for(int i=0;i<mSelectBeans.size();i++){
-//            EditOrImageBean bean =  mSelectBeans.get(i);
-//            if ("text".equals(bean.getType())) {
-//                String result =((EditText) mRecyclerView.getChildAt(i).findViewById(R.id.mEditText)).getText().toString();
-//                bean.setText(result);
-//            } else if ("image".equals(bean.getType())) {
-//                BitmapDrawable drawable = (BitmapDrawable) ((ImageView) mRecyclerView.getChildAt(i).findViewById(R.id.mImageView)).getDrawable();
-//                if(drawable!=null){
-//                    bean.setBitmap(drawable.getBitmap());
-//                }
-//            }
-//        }
-//    }
-
 
     private static final int CAMERA_REQUEST = 1888;
     private final int PICTURE_ASK = 1001;
     Uri mUri;
     ImageView mImageView;
+
+    //图片编辑之后
+    public static final int ACTION_REQUEST_EDITIMAGE = 9;
 
     private void showImageDialog(ImageView imageView) {
         mImageView = imageView;
@@ -271,48 +318,146 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            if (data != null) {
-                if (requestCode == PICTURE_ASK) {
-                    Uri originalUri = data.getData();
-                    GitBitmap(originalUri);
-                } else if (requestCode == CAMERA_REQUEST) {
-                    Uri mUri = data.getData();
-                    if (mUri != null) {
-                        GitBitmap(mUri);
-                    } else {
-                        Bitmap photo = (Bitmap) data.getExtras().get("data");
-                        if (photo != null) {
-                            bmp = photo;
-                            setImage("",bmp);
+            if (requestCode == ACTION_REQUEST_EDITIMAGE) {
+                String newFilePath = data.getStringExtra("save_file_path");
+                GitBitmap(Uri.fromFile(new File(newFilePath)));
+            } else {
+                if (data != null) {
+                    if (requestCode == PICTURE_ASK) {
+                        Uri originalUri = data.getData();
+                        GitBitmap(originalUri);
+                    } else if (requestCode == CAMERA_REQUEST) {
+                        Uri mUri = data.getData();
+                        if (mUri != null) {
+                            GitBitmap(mUri);
+                        } else {
+                            Bitmap photo = (Bitmap) data.getExtras().get("data");
+                            if (photo != null) {
+                                bmp = photo;
+                                setImage("", bmp);
+                            }
                         }
                     }
-                }
-            } else {
-                if (requestCode == CAMERA_REQUEST) {
-                    GitBitmap(mUri);
+                } else {
+                    if (requestCode == CAMERA_REQUEST) {
+                        GitBitmap(mUri);
+                    }
                 }
             }
         }
     }
 
     private void GitBitmap(final Uri originalUri) {
-        Glide.with(ct).load(originalUri).placeholder(R.drawable.ic_image_loading)
-                .error(R.drawable.ic_image_loadfail).crossFade().into(new SimpleTarget<GlideDrawable>(500, 500) {
+        Glide.with(ct).load(originalUri).placeholder(R.drawable.ic_image_loading).error(R.drawable.ic_image_loadfail).crossFade().into(new SimpleTarget<GlideDrawable>(width, width) {
             @Override
             public void onResourceReady(GlideDrawable resource, GlideAnimation<? super GlideDrawable> glideAnimation) {
                 Bitmap bitmap = ((GlideBitmapDrawable) resource).getBitmap();
-                Float xMatrix = (Float.valueOf(500)) / bitmap.getWidth();
+                bitmap.getWidth();
+                Float xMatrix = (Float.valueOf(width)) / bitmap.getWidth();
                 Matrix matrix = new Matrix();
                 matrix.postScale(xMatrix, xMatrix); //长和宽放大缩小的比例
                 Bitmap resizeBmp = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-                setImage(originalUri.toString(),resizeBmp);
+                setImage(originalUri.toString(), resizeBmp);
             }
         });
     }
 
-    private void setImage(String originalUri,Bitmap resizeBmp) {
+    private void setImage(String originalUri, Bitmap resizeBmp) {
         mImageView.setImageBitmap(resizeBmp);
         mSelectBeans.get((Integer) mImageView.getTag()).setBitmap(resizeBmp);
         mSelectBeans.get((Integer) mImageView.getTag()).setBitmapUrl(originalUri);
     }
+
+
+    // 等待对话框
+    public MyDialog MySettingDialog;
+    RadioGroup locationRg;
+    RadioGroup colorRg;
+    RadioGroup SizeRg;
+    Button check_ok;
+    public int textGravity = Gravity.LEFT;
+    public int textColor = R.color.black;
+    public int textSize = 25;
+
+    private void showSettingDialog(View HolderView, final int position) {
+        View view = View.inflate(ct, R.layout.setting_dialog, null);
+        locationRg = (RadioGroup) view.findViewById(R.id.locationRg);
+        colorRg = (RadioGroup) view.findViewById(R.id.colorRg);
+        SizeRg = (RadioGroup) view.findViewById(R.id.SizeRg);
+        check_ok = (Button) view.findViewById(R.id.check_ok);
+
+
+        if (MySettingDialog == null) {
+            MySettingDialog = new MyDialog(ct, 0, 0, view, R.style.dialog);
+        }
+        MySettingDialog.setCancelable(true);
+        MySettingDialog.show();
+
+
+        locationRg.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                switch (checkedId) {
+                    case R.id.locationRb_left:
+                        textGravity = Gravity.LEFT;
+                        break;
+                    case R.id.locationRb_middle:
+                        textGravity = Gravity.CENTER_HORIZONTAL;
+                        break;
+                    case R.id.locationRb_right:
+                        textGravity = Gravity.RIGHT;
+                        break;
+                }
+            }
+        });
+        colorRg.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                switch (checkedId) {
+                    case R.id.colorRb_black:
+                        textColor = R.color.black;
+                        break;
+                    case R.id.colorRb_white:
+                        textColor = R.color.white;
+                        break;
+                    case R.id.colorRb_red:
+                        textColor = R.color.red;
+                        break;
+                }
+            }
+        });
+        SizeRg.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                switch (checkedId) {
+                    case R.id.SizeRb1:
+                        textSize = 25;
+                        break;
+                    case R.id.SizeRb2:
+                        textSize = 35;
+                        break;
+                    case R.id.SizeRb3:
+                        textSize = 45;
+                        break;
+                }
+            }
+        });
+
+
+        check_ok.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                EditOrImageBean bean = mSelectBeans.get(position);
+                bean.setTextGravity(textGravity);
+                bean.setTextColor(textColor);
+                bean.setTextSize(textSize);
+                mAdapter.notifyItemChanged(position);
+                MySettingDialog.dismiss();
+                MySettingDialog.cancel();
+                MySettingDialog = null;
+            }
+        });
+
+    }
+
 }

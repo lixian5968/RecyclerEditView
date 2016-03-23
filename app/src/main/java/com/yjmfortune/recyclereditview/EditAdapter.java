@@ -21,11 +21,15 @@ public class EditAdapter extends RecyclerView.Adapter<EditAdapter.MyViewHolder> 
     private LayoutInflater mInflater;
     Context ct;
     List<EditOrImageBean> mSelectBeans;
+    //选中的位置
+    int pos;
+
 
     public interface OnItemClickLitener {
         void onItemAddClick(View view,ImageView imageView, int position);
         void onDeleteAddClick(View view, int position);
         void onUpdateText(View view, int position,String s);
+        void onSettingClick(View view,  ImageView imageView, int position);
     }
 
     private OnItemClickLitener mOnItemClickLitener;
@@ -55,9 +59,15 @@ public class EditAdapter extends RecyclerView.Adapter<EditAdapter.MyViewHolder> 
             holder.update.setVisibility(View.GONE);
             if(bean.getText()!=null && bean.getText().length()>0 ){
                 holder.mEditText.setText(bean.getText());
+                holder.mEditText.setGravity(bean.getTextGravity());
+                holder.mEditText.setTextColor(ct.getResources().getColor(bean.getTextColor()));
+                holder.mEditText.setTextSize(bean.getTextSize());
             }else{
                 holder.mEditText.setText("");
             }
+
+
+
         } else if ("image".equals(bean.getType())) {
             holder.mEditText.setVisibility(View.GONE);
             holder.mImageView.setVisibility(View.VISIBLE);
@@ -71,6 +81,16 @@ public class EditAdapter extends RecyclerView.Adapter<EditAdapter.MyViewHolder> 
 
         // 如果设置了回调，则设置点击事件
         if (mOnItemClickLitener != null) {
+
+            holder.setting.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int pos = holder.getLayoutPosition();
+                    mOnItemClickLitener.onSettingClick(holder.itemView, holder.mImageView,pos);
+                }
+            });
+
+
             holder.update.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -86,6 +106,7 @@ public class EditAdapter extends RecyclerView.Adapter<EditAdapter.MyViewHolder> 
                     mOnItemClickLitener.onDeleteAddClick(holder.itemView, pos);
                 }
             });
+
 
 
             holder.mEditText.addTextChangedListener(new TextWatcher() {
@@ -109,6 +130,8 @@ public class EditAdapter extends RecyclerView.Adapter<EditAdapter.MyViewHolder> 
         }
     }
 
+
+
     @Override
     public int getItemCount() {
         return mDatas.size();
@@ -119,12 +142,21 @@ public class EditAdapter extends RecyclerView.Adapter<EditAdapter.MyViewHolder> 
         ImageView mImageView;
         LinearLayout update;
         LinearLayout delete;
+        LinearLayout setting;
         public MyViewHolder(View view) {
             super(view);
             mEditText = (EditText) view.findViewById(R.id.mEditText);
             mImageView = (ImageView) view.findViewById(R.id.mImageView);
             update = (LinearLayout) view.findViewById(R.id.update);
             delete = (LinearLayout) view.findViewById(R.id.delete);
+            setting = (LinearLayout) view.findViewById(R.id.setting);
         }
     }
+
+//    public static int dip2px(Context context, float dipValue) {
+//        final float scale = context.getResources().getDisplayMetrics().density;
+//        return (int) (dipValue * scale + 0.5f);
+//    }
+
+
 }

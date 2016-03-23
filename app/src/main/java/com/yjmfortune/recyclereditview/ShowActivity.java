@@ -37,9 +37,6 @@ public class ShowActivity extends AppCompatActivity {
                 }
             } else if ("image".equals(bean.getType())) {
                 if (bean.getBitmap() != null) {
-                    if (i != 0) {
-                        edit_text.append("\n");
-                    }
                     ImageSpan imageSpan = new ImageSpan(ct, bean.getBitmap());
                     SpannableString spannableString = new SpannableString("*");
                     spannableString.setSpan(imageSpan, spannableString.length() - "*".length(), spannableString.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);

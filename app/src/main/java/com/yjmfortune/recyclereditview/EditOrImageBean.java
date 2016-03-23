@@ -1,6 +1,7 @@
 package com.yjmfortune.recyclereditview;
 
 import android.graphics.Bitmap;
+import android.view.Gravity;
 
 import java.io.Serializable;
 
@@ -14,6 +15,34 @@ public class EditOrImageBean implements Serializable {
     public String type;
     public String text;
 
+    public int textGravity = Gravity.LEFT;
+    public int textColor = R.color.black;
+    public int textSize =25;
+
+
+    public int getTextGravity() {
+        return textGravity;
+    }
+
+    public void setTextGravity(int textGravity) {
+        this.textGravity = textGravity;
+    }
+
+    public int getTextColor() {
+        return textColor;
+    }
+
+    public void setTextColor(int textColor) {
+        this.textColor = textColor;
+    }
+
+    public int getTextSize() {
+        return textSize;
+    }
+
+    public void setTextSize(int textSize) {
+        this.textSize = textSize;
+    }
 
     public EditOrImageBean( Bitmap bitmap, String type) {
         this.bitmap = bitmap;
