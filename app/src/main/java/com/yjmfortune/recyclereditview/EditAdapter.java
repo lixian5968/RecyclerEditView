@@ -57,11 +57,15 @@ public class EditAdapter extends RecyclerView.Adapter<EditAdapter.MyViewHolder> 
             holder.mEditText.setVisibility(View.VISIBLE);
             holder.mImageView.setVisibility(View.GONE);
             holder.update.setVisibility(View.GONE);
+            holder.setting.setVisibility(View.GONE);
+
+
             if(bean.getText()!=null && bean.getText().length()>0 ){
                 holder.mEditText.setText(bean.getText());
-                holder.mEditText.setGravity(bean.getTextGravity());
-                holder.mEditText.setTextColor(ct.getResources().getColor(bean.getTextColor()));
-                holder.mEditText.setTextSize(bean.getTextSize());
+                //文字还是不去动她
+//                holder.mEditText.setGravity(bean.getTextGravity());
+//                holder.mEditText.setTextColor(ct.getResources().getColor(bean.getTextColor()));
+//                holder.mEditText.setTextSize(bean.getTextSize());
             }else{
                 holder.mEditText.setText("");
             }
@@ -72,6 +76,7 @@ public class EditAdapter extends RecyclerView.Adapter<EditAdapter.MyViewHolder> 
             holder.mEditText.setVisibility(View.GONE);
             holder.mImageView.setVisibility(View.VISIBLE);
             holder.update.setVisibility(View.VISIBLE);
+            holder.setting.setVisibility(View.VISIBLE);
             if(bean.getBitmap()!=null){
                 holder.mImageView.setImageBitmap(bean.getBitmap());
             }else{

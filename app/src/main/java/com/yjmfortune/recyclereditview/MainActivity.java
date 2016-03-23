@@ -133,19 +133,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                         try {
                             Intent it = new Intent(MainActivity.this, EditImageActivity.class);
-                            Uri mUri=    Uri.parse(bean.getBitmapUrl());
-                            String[] proj = {MediaStore.Images.Media.DATA};
-                            //好像是android多媒体数据库的封装接口，具体的看Android文档
-                            Cursor cursor = managedQuery(mUri, proj, null, null, null);
-                            //按我个人理解 这个是获得用户选择的图片的索引值
-                            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-                            //将光标移至开头 ，这个很重要，不小心很容易引起越界
-                            cursor.moveToFirst();
-                            //最后根据索引值获取图片路径
-                            String path = cursor.getString(column_index);
-                            it.putExtra(EditImageActivity.FILE_PATH, mUri);
+                            String path;
+                            if(bean.getBitmapUrl().startsWith("content")){
+                                Uri mUri=    Uri.parse(bean.getBitmapUrl());
+                                String[] proj = {MediaStore.Images.Media.DATA};
+                                //好像是android多媒体数据库的封装接口，具体的看Android文档
+                                Cursor cursor = managedQuery(mUri, proj, null, null, null);
+                                //按我个人理解 这个是获得用户选择的图片的索引值
+                                int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                                //将光标移至开头 ，这个很重要，不小心很容易引起越界
+                                cursor.moveToFirst();
+                                //最后根据索引值获取图片路径
+                                path = cursor.getString(column_index);
+                            }else{
+                                if(bean.getBitmapUrl().startsWith("file://")){
+                                    path =bean.getBitmapUrl().replaceFirst("file://","");
+                                }else{
+                                    path = bean.getBitmapUrl();
+                                }
+                            }
 
-
+                            it.putExtra(EditImageActivity.FILE_PATH, path);
                             String saveDir = Environment.getExternalStorageDirectory() + "/lpj/";
                             String newName = System.currentTimeMillis() + ".jpg";
                             File file = new File(saveDir, newName);
